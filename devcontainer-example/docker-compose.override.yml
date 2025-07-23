@@ -1,0 +1,10 @@
+# docker-compose.override.yml
+
+version: "3.7"
+
+services:
+  frappe:
+    volumes:
+      - ${HOME}/.ssh:/home/frappe/.ssh:ro
+    environment:
+      - GIT_SSH_COMMAND=ssh -o StrictHostKeyChecking=no
