@@ -11,6 +11,14 @@ ARG NODE_VERSION=20.19.2
 ENV NVM_DIR=/home/frappe/.nvm
 ENV PATH=${NVM_DIR}/versions/node/v${NODE_VERSION}/bin/:${PATH}
 
+USER root
+
+RUN apt-get update && \
+    apt-get install -y openssh-client && \
+    rm -rf /var/lib/apt/lists/*
+
+USER frappe
+
 RUN useradd -ms /bin/bash frappe \
     && apt-get update \
     && apt-get install --no-install-recommends -y \
