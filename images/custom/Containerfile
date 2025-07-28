@@ -16,7 +16,7 @@ ENV PATH=${NVM_DIR}/versions/node/v${NODE_VERSION}/bin/:${PATH}
 RUN useradd -ms /bin/bash frappe \
     && apt-get update \
     && apt-get install -y openssh-client && \
-    rm -rf /var/lib/apt/lists/* &&\
+    rm -rf /var/lib/apt/lists/* \
     && apt-get install --no-install-recommends -y \
     curl \
     git \
