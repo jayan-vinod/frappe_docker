@@ -187,8 +187,8 @@ RUN sh -c '\
 # Clone the app into the "apps" directory, which will exist after bench init
 RUN cd /home/frappe/frappe-bench && \
     git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector && \
-    echo "checktrack_connector" >> apps.txt && \
-    echo "Current apps.txt:" && cat apps.txt
+    echo "checktrack_connector" >> sites/apps.txt && \
+    echo "Current apps.txt:" && cat sites/apps.txt
 # RUN git clone --depth 1 ${CUSTOM_APP_REPO} /home/frappe/frappe-bench/apps/checktrack_connector
 # RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/apps.txt
 
@@ -200,6 +200,12 @@ FROM base AS backend
 USER frappe
 
 COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
+
+# Copy app from builder
+COPY --from=builder /home/frappe/frappe-bench/apps/checktrack_connector /home/frappe/frappe-bench/apps/checktrack_connector
+
+# Optionally: ensure it's in apps.txt
+RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/sites/apps.txt
 
 WORKDIR /home/frappe/frappe-bench
 
