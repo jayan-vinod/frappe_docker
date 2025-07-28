@@ -120,7 +120,7 @@ USER frappe
 ARG FRAPPE_BRANCH=version-15
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
 
-ENV CUSTOM_APP_TOKEN=ghp_YourHardcodedGitHubTokenHere
+ENV CUSTOM_APP_TOKEN=ghp_YourHardcodedGitHubTokenHeres
 ENV CUSTOM_APP_REPO=https://${CUSTOM_APP_TOKEN}@github.com/jayan-vinod/checktrack-connector.git
 
 # Clone the app into the "apps" directory, which will exist after bench init
