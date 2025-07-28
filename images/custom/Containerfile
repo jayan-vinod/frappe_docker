@@ -119,6 +119,14 @@ USER frappe
 
 ARG FRAPPE_BRANCH=version-15
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
+
+ENV CUSTOM_APP_TOKEN=ghp_YourHardcodedGitHubTokenHere
+ENV CUSTOM_APP_REPO=https://${CUSTOM_APP_TOKEN}@github.com/jayan-vinod/checktrack-connector.git
+
+# Clone the app into the "apps" directory, which will exist after bench init
+RUN mkdir -p /home/frappe/custom-app && \
+    git clone --depth 1 ${CUSTOM_APP_REPO} /home/frappe/custom-app/checktrack_connector
+
 # RUN export APP_INSTALL_ARGS="" && \
 #   if [ -n "${APPS_JSON_BASE64}" ]; then \
 #     export APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
@@ -151,6 +159,7 @@ RUN sh -c '\
     /home/frappe/frappe-bench && \
   cd /home/frappe/frappe-bench && \
   echo "{}" > sites/common_site_config.json && \
+  cp -r /home/frappe/custom-app/checktrack_connector apps/checktrack_connector && \
   find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
 
 FROM base AS backend
