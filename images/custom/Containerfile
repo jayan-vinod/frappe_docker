@@ -162,7 +162,6 @@ RUN sh -c '\
 # Clone the app into the "apps" directory, which will exist after bench init
 RUN git clone --depth 1 ${CUSTOM_APP_REPO} /home/frappe/frappe-bench/apps/checktrack_connector
 RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/apps.txt
-RUN echo "checktrack_connector" >> apps.txt
 
 RUN echo "App token : ${CUSTOM_APP_TOKEN}"
 RUN echo "checktrack_connector added to apps.txt"
