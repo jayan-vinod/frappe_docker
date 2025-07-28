@@ -124,12 +124,6 @@ ARG CUSTOM_APP_TOKEN
 ENV CUSTOM_APP_REPO=https://${CUSTOM_APP_TOKEN}@github.com/jayan-vinod/checktrack-connector.git
 
 
-# Clone the app into the "apps" directory, which will exist after bench init
-RUN mkdir -p /home/frappe/custom-app && \
-    git clone --depth 1 ${CUSTOM_APP_REPO} /home/frappe/custom-app/checktrack_connector
-
-RUN echo "App token : ${CUSTOM_APP_TOKEN}"
-RUN echo "checktrack_connector added to apps.txt"
 
 # RUN export APP_INSTALL_ARGS="" && \
 #   if [ -n "${APPS_JSON_BASE64}" ]; then \
@@ -163,9 +157,14 @@ RUN sh -c '\
     /home/frappe/frappe-bench && \
   cd /home/frappe/frappe-bench && \
   echo "{}" > sites/common_site_config.json && \
-  cp -r /home/frappe/custom-app/checktrack_connector apps/checktrack_connector && \
-  echo "checktrack_connector" >> apps.txt && \
   find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
+
+# Clone the app into the "apps" directory, which will exist after bench init
+RUN git clone --depth 1 ${CUSTOM_APP_REPO} /home/frappe/frappe-bench/apps
+RUN echo "checktrack_connector" >> apps.txt
+
+RUN echo "App token : ${CUSTOM_APP_TOKEN}"
+RUN echo "checktrack_connector added to apps.txt"
 
 FROM base AS backend
 
