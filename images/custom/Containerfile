@@ -145,25 +145,6 @@ ENV CUSTOM_APP_REPO=https://${CUSTOM_APP_TOKEN}@github.com/jayan-vinod/checktrac
 
 
 # Init the bench and install apps
-RUN sh -c '\
-  if [ -n "${APPS_JSON_BASE64}" ]; then \
-    APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
-  else \
-    APP_INSTALL_ARGS=""; \
-  fi && \
-  bench init ${APP_INSTALL_ARGS} \
-    --frappe-branch=${FRAPPE_BRANCH} \
-    --frappe-path=${FRAPPE_PATH} \
-    --no-procfile \
-    --no-backups \
-    --skip-redis-config-generation \
-    --verbose \
-    /home/frappe/frappe-bench && \
-  cd /home/frappe/frappe-bench && \
-  git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector && \
-  echo "{\"install_apps\": \"frappe,erpnext,checktrack_connector\"}" > sites/common_site_config.json && \
-  find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
-
 # RUN sh -c '\
 #   if [ -n "${APPS_JSON_BASE64}" ]; then \
 #     APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
@@ -179,18 +160,37 @@ RUN sh -c '\
 #     --verbose \
 #     /home/frappe/frappe-bench && \
 #   cd /home/frappe/frappe-bench && \
-#   echo '{"install_apps": "frappe,erpnext,checktrack_connector"}' > sites/common_site_config.json && \
+#   git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector && \
+#   echo "{\"install_apps\": \"frappe,erpnext,checktrack_connector\"}" > sites/common_site_config.json && \
 #   find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
+
+RUN sh -c '\
+  if [ -n "${APPS_JSON_BASE64}" ]; then \
+    APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
+  else \
+    APP_INSTALL_ARGS=""; \
+  fi && \
+  bench init ${APP_INSTALL_ARGS} \
+    --frappe-branch=${FRAPPE_BRANCH} \
+    --frappe-path=${FRAPPE_PATH} \
+    --no-procfile \
+    --no-backups \
+    --skip-redis-config-generation \
+    --verbose \
+    /home/frappe/frappe-bench && \
+  cd /home/frappe/frappe-bench && \
+  echo '{}' > sites/common_site_config.json && \
+  find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
 
 RUN ls -l /home/frappe/frappe-bench/apps && cat /home/frappe/frappe-bench/apps.txt
 
 # Clone the app into the "apps" directory, which will exist after bench init
-# RUN cd /home/frappe/frappe-bench && \
-#     git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector && \
-#     echo "checktrack_connector" >> apps.txt && \
-#     echo "Current apps.txt:" && cat apps.txt
-# RUN git clone --depth 1 ${CUSTOM_APP_REPO} /home/frappe/frappe-bench/apps/checktrack_connector
-# RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/apps.txt
+RUN cd /home/frappe/frappe-bench && \
+    git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector && \
+    echo "checktrack_connector" >> apps.txt && \
+    echo "Current apps.txt:" && cat apps.txt
+RUN git clone --depth 1 ${CUSTOM_APP_REPO} /home/frappe/frappe-bench/apps/checktrack_connector
+RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/apps.txt
 
 RUN echo "App token : ${CUSTOM_APP_TOKEN}"
 RUN echo "checktrack_connector added to apps.txt"
