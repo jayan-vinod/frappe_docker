@@ -223,15 +223,19 @@ RUN bench setup requirements
 RUN echo "App token : ${CUSTOM_APP_TOKEN}"
 RUN echo "checktrack_connector added to apps.txt"
 
+RUN echo "Builder apps folder:" && ls -la /home/frappe/frappe-bench/apps
+
 FROM base AS backend
 
 USER frappe
 # Copy app from builder
 # 👇 First copy the custom app separately
-COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench/apps/checktrack_connector /home/frappe/frappe-bench/apps/checktrack_connector
+# COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench/apps/checktrack_connector /home/frappe/frappe-bench/apps/checktrack_connector
 
 # 👇 Then copy the rest of frappe-bench (without overwriting the custom app)
 COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
+
+RUN echo "Backend apps folder:" && ls -la /home/frappe/frappe-bench/apps
 
 # Optionally: ensure it's in apps.txt
 # RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/sites/apps.txt
