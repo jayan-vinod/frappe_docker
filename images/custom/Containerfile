@@ -226,11 +226,12 @@ RUN echo "checktrack_connector added to apps.txt"
 FROM base AS backend
 
 USER frappe
-
-COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
-
 # Copy app from builder
-COPY --from=builder /home/frappe/frappe-bench/apps/checktrack_connector /home/frappe/frappe-bench/apps/checktrack_connector
+# 👇 First copy the custom app separately
+COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench/apps/checktrack_connector /home/frappe/frappe-bench/apps/checktrack_connector
+
+# 👇 Then copy the rest of frappe-bench (without overwriting the custom app)
+COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
 
 # Optionally: ensure it's in apps.txt
 # RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/sites/apps.txt
