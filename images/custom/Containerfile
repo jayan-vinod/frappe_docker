@@ -11,6 +11,8 @@ ARG NODE_VERSION=20.19.2
 ENV NVM_DIR=/home/frappe/.nvm
 ENV PATH=${NVM_DIR}/versions/node/v${NODE_VERSION}/bin/:${PATH}
 
+
+    
 RUN useradd -ms /bin/bash frappe \
     && apt-get update \
     && apt-get install -y openssh-client \
@@ -21,18 +23,24 @@ RUN useradd -ms /bin/bash frappe \
     nginx \
     gettext-base \
     file \
+    # weasyprint dependencies
     libpango-1.0-0 \
     libharfbuzz0b \
     libpangoft2-1.0-0 \
     libpangocairo-1.0-0 \
+    # For backups
     restic \
     gpg \
+    # MariaDB
     mariadb-client \
     less \
+    # Postgres
     libpq-dev \
     postgresql-client \
+    # For healthcheck
     wait-for-it \
     jq \
+    # NodeJS
     && mkdir -p ${NVM_DIR} \
     && curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.5/install.sh | bash \
     && . ${NVM_DIR}/nvm.sh \
@@ -42,17 +50,20 @@ RUN useradd -ms /bin/bash frappe \
     && nvm alias default v${NODE_VERSION} \
     && rm -rf ${NVM_DIR}/.cache \
     && echo 'export NVM_DIR="/home/frappe/.nvm"' >>/home/frappe/.bashrc \
-    && echo '[ -s "$NVM_DIR/nvm.sh" ] && \\. "$NVM_DIR/nvm.sh"' >>/home/frappe/.bashrc \
-    && echo '[ -s "$NVM_DIR/bash_completion" ] && \\. "$NVM_DIR/bash_completion"' >>/home/frappe/.bashrc \
+    && echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"  # This loads nvm' >>/home/frappe/.bashrc \
+    && echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"  # This loads nvm bash_completion' >>/home/frappe/.bashrc \
+    # Install wkhtmltopdf with patched qt
     && if [ "$(uname -m)" = "aarch64" ]; then export ARCH=arm64; fi \
     && if [ "$(uname -m)" = "x86_64" ]; then export ARCH=amd64; fi \
     && downloaded_file=wkhtmltox_${WKHTMLTOPDF_VERSION}.${WKHTMLTOPDF_DISTRO}_${ARCH}.deb \
     && curl -sLO https://github.com/wkhtmltopdf/packaging/releases/download/$WKHTMLTOPDF_VERSION/$downloaded_file \
     && apt-get install -y ./$downloaded_file \
     && rm $downloaded_file \
+    # Clean up
     && rm -rf /var/lib/apt/lists/* \
     && rm -fr /etc/nginx/sites-enabled/default \
     && pip3 install frappe-bench \
+    # Fixes for non-root nginx and logs to stdout
     && sed -i '/user www-data/d' /etc/nginx/nginx.conf \
     && ln -sf /dev/stdout /var/log/nginx/access.log && ln -sf /dev/stderr /var/log/nginx/error.log \
     && touch /run/nginx.pid \
@@ -68,14 +79,18 @@ FROM base AS builder
 
 RUN apt-get update \
     && DEBIAN_FRONTEND=noninteractive apt-get install --no-install-recommends -y \
+    # For frappe framework
     openssh-client \
     wget \
+    #for building arm64 binaries
     libcairo2-dev \
     libpango1.0-dev \
     libjpeg-dev \
     libgif-dev \
     librsvg2-dev \
+    # For psycopg2
     libpq-dev \
+    # Other
     libffi-dev \
     liblcms2-dev \
     libldap2-dev \
@@ -88,11 +103,13 @@ RUN apt-get update \
     rlwrap \
     tk8.6-dev \
     cron \
+    # For pandas
     gcc \
     build-essential \
     libbz2-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# apps.json includes
 ARG APPS_JSON_BASE64
 RUN if [ -n "${APPS_JSON_BASE64}" ]; then \
     mkdir /opt/frappe && echo "${APPS_JSON_BASE64}" | base64 -d > /opt/frappe/apps.json; \
@@ -102,28 +119,109 @@ USER frappe
 
 ARG FRAPPE_BRANCH=version-15
 ARG FRAPPE_PATH=https://github.com/frappe/frappe
+
 ARG CUSTOM_APP_TOKEN
 ENV CUSTOM_APP_REPO=https://${CUSTOM_APP_TOKEN}@github.com/jayan-vinod/checktrack-connector.git
 
-RUN sh -c '
-  if [ -n "${APPS_JSON_BASE64}" ]; then \
-    APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
-  else \
-    APP_INSTALL_ARGS=""; \
-  fi && \
-  bench init ${APP_INSTALL_ARGS} \
-    --frappe-branch=${FRAPPE_BRANCH} \
+
+
+# RUN export APP_INSTALL_ARGS="" && \
+#   if [ -n "${APPS_JSON_BASE64}" ]; then \
+#     export APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
+#   fi && \
+#   bench init ${APP_INSTALL_ARGS}\
+#     --frappe-branch=${FRAPPE_BRANCH} \
+#     --frappe-path=${FRAPPE_PATH} \
+#     --no-procfile \
+#     --no-backups \
+#     --skip-redis-config-generation \
+#     --verbose \
+#     /home/frappe/frappe-bench && \
+#   cd /home/frappe/frappe-bench && \
+#   echo "{}" > sites/common_site_config.json && \
+#   find apps -mindepth 1 -path "*/.git" | xargs rm -fr
+# Clone your custom app first
+# RUN git clone --depth 1 '${CUSTOM_APP_REPO}' /opt/frappe/checktrack_connector
+
+
+# Init the bench and install apps
+# RUN sh -c '\
+#   if [ -n "${APPS_JSON_BASE64}" ]; then \
+#     APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
+#   else \
+#     APP_INSTALL_ARGS=""; \
+#   fi && \
+#   bench init ${APP_INSTALL_ARGS} \
+#     --frappe-branch=${FRAPPE_BRANCH} \
+#     --frappe-path=${FRAPPE_PATH} \
+#     --no-procfile \
+#     --no-backups \
+#     --skip-redis-config-generation \
+#     --verbose \
+#     /home/frappe/frappe-bench && \
+#   cd /home/frappe/frappe-bench && \
+#   git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector && \
+#   echo "{\"install_apps\": \"frappe,erpnext,checktrack_connector\"}" > sites/common_site_config.json && \
+#   find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
+
+# RUN sh -c '\
+#   if [ -n "${APPS_JSON_BASE64}" ]; then \
+#     APP_INSTALL_ARGS="--apps_path=/opt/frappe/apps.json"; \
+#   else \
+#     APP_INSTALL_ARGS=""; \
+#   fi && \
+#   bench init ${APP_INSTALL_ARGS} \
+#     --frappe-branch=${FRAPPE_BRANCH} \
+#     --frappe-path=${FRAPPE_PATH} \
+#     --no-procfile \
+#     --no-backups \
+#     --skip-redis-config-generation \
+#     --verbose \
+#     /home/frappe/frappe-bench && \
+#   cd /home/frappe/frappe-bench && \
+#   echo '{}' > sites/common_site_config.json && \
+#   find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
+
+# Initialize bench without apps.json
+RUN bench init /home/frappe/frappe-bench \
     --frappe-path=${FRAPPE_PATH} \
+    --frappe-branch=${FRAPPE_BRANCH} \
     --no-procfile \
     --no-backups \
     --skip-redis-config-generation \
-    --verbose \
-    /home/frappe/frappe-bench && \
-  cd /home/frappe/frappe-bench && \
-  echo '{}' > sites/common_site_config.json && \
-  git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector && \
-  echo "checktrack_connector" >> sites/apps.txt && \
-  find apps -mindepth 1 -path "*/.git" | xargs rm -fr'
+    --verbose
+
+WORKDIR /home/frappe/frappe-bench
+
+# Clone ERPNext manually
+RUN git clone --depth 1 https://github.com/frappe/erpnext --branch version-15 apps/erpnext
+
+# Clone your custom app
+RUN git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector
+
+# Add to apps.txt
+RUN echo "frappe" > sites/apps.txt && \
+    echo "erpnext" >> sites/apps.txt && \
+    echo "checktrack_connector" >> sites/apps.txt
+
+# Also tell bench to install them on new sites
+RUN echo '{"install_apps": "frappe,erpnext,checktrack_connector"}' > sites/common_site_config.json
+
+# Install Python & Node dependencies
+RUN bench setup requirements
+
+# RUN ls -l /home/frappe/frappe-bench/apps && cat /home/frappe/frappe-bench/apps.txt
+
+# Clone the app into the "apps" directory, which will exist after bench init
+# RUN cd /home/frappe/frappe-bench && \
+#     git clone --depth 1 ${CUSTOM_APP_REPO} apps/checktrack_connector && \
+#     echo "\nchecktrack_connector" >> sites/apps.txt && \
+#     echo "Current apps.txt:" && cat sites/apps.txt
+# RUN git clone --depth 1 ${CUSTOM_APP_REPO} /home/frappe/frappe-bench/apps/checktrack_connector
+# RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/apps.txt
+
+RUN echo "App token : ${CUSTOM_APP_TOKEN}"
+RUN echo "checktrack_connector added to apps.txt"
 
 FROM base AS backend
 
@@ -131,10 +229,11 @@ USER frappe
 
 COPY --from=builder --chown=frappe:frappe /home/frappe/frappe-bench /home/frappe/frappe-bench
 
-# Ensure app still copied in case of multi-stage cleanup
+# Copy app from builder
 COPY --from=builder /home/frappe/frappe-bench/apps/checktrack_connector /home/frappe/frappe-bench/apps/checktrack_connector
 
-RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/sites/apps.txt
+# Optionally: ensure it's in apps.txt
+# RUN echo "checktrack_connector" >> /home/frappe/frappe-bench/sites/apps.txt
 
 WORKDIR /home/frappe/frappe-bench
 
